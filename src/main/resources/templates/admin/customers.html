@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{admin/layout}">
+<head>
+    <title>Customer Management - eShop Admin</title>
+</head>
+<body>
+    <div layout:fragment="content">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3">Customer Management</h1>
+            <div class="d-flex gap-2">
+                <input type="text" class="form-control" id="searchCustomer" placeholder="Search customers...">
+                <button class="btn btn-primary" onclick="searchCustomers()">Search</button>
+            </div>
+        </div>
+
+        <!-- Customers List -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Customers</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Orders</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="customer : ${customers}">
+                                <td th:text="${customer.id}">1</td>
+                                <td th:text="${customer.name}">John Doe</td>
+                                <td th:text="${customer.email}">john@example.com</td>
+                                <td th:text="${customer.phoneNumber}">+1234567890</td>
+                                <td th:text="${customer.orderCount}">5</td>
+                                <td>
+                                    <span class="badge" 
+                                          th:classappend="${customer.active} ? 'bg-success' : 'bg-danger'"
+                                          th:text="${customer.active ? 'Active' : 'Inactive'}">Active</span>
+                                </td>
+                                <td>
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-sm btn-info"
+                                                data-bs-toggle="modal"
+                                                th:data-bs-target="'#viewCustomerModal' + ${customer.id}">
+                                            View
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-warning"
+                                                th:if="${customer.active}"
+                                                th:onclick="'updateCustomerStatus(' + ${customer.id} + ', false)'">
+                                            Deactivate
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-success"
+                                                th:if="${!customer.active}"
+                                                th:onclick="'updateCustomerStatus(' + ${customer.id} + ', true)'">
+                                            Activate
+                                        </button>
+                                    </div>
+
+                                    <!-- View Customer Modal -->
+                                    <div class="modal fade" th:id="'viewCustomerModal' + ${customer.id}" tabindex="-1">
+                                        <div class="modal-dialog modal-lg">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title">Customer Details</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            <h6>Personal Information</h6>
+                                                            <p><strong>Name:</strong> <span th:text="${customer.name}">John Doe</span></p>
+                                                            <p><strong>Email:</strong> <span th:text="${customer.email}">john@example.com</span></p>
+                                                            <p><strong>Phone:</strong> <span th:text="${customer.phoneNumber}">+1234567890</span></p>
+                                                            <p><strong>Joined:</strong> <span th:text="${#temporals.format(customer.createdAt, 'dd-MM-yyyy')}">01-01-2024</span></p>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <h6>Address</h6>
+                                                            <p th:if="${customer.address}">
+                                                                <span th:text="${customer.address.street}">123 Main St</span><br>
+                                                                <span th:text="${customer.address.city}">City</span>,
+                                                                <span th:text="${customer.address.state}">State</span><br>
+                                                                <span th:text="${customer.address.country}">Country</span>
+                                                                <span th:text="${customer.address.zipCode}">12345</span>
+                                                            </p>
+                                                            <p th:unless="${customer.address}">No address provided</p>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="mt-4">
+                                                        <h6>Recent Orders</h6>
+                                                        <div class="table-responsive">
+                                                            <table class="table table-sm">
+                                                                <thead>
+                                                                    <tr>
+                                                                        <th>Order ID</th>
+                                                                        <th>Date</th>
+                                                                        <th>Amount</th>
+                                                                        <th>Status</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    <tr th:each="order : ${customer.recentOrders}">
+                                                                        <td th:text="${order.id}">1</td>
+                                                                        <td th:text="${#temporals.format(order.createdAt, 'dd-MM-yyyy')}">01-01-2024</td>
+                                                                        <td th:text="${'$' + order.totalAmount}">$100</td>
+                                                                        <td>
+                                                                            <span class="badge" 
+                                                                                  th:classappend="${order.status == 'COMPLETED'} ? 'bg-success' : 'bg-warning'"
+                                                                                  th:text="${order.status}">Completed</span>
+                                                                        </td>
+                                                                    </tr>
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr th:if="${customers.empty}">
+                                <td colspan="7" class="text-center">No customers found</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page specific scripts -->
+    <th:block layout:fragment="scripts">
+        <script>
+            function updateCustomerStatus(customerId, active) {
+                if (confirm('Are you sure you want to ' + (active ? 'activate' : 'deactivate') + ' this customer?')) {
+                    fetch(`/admin/customers/${customerId}/status`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ active: active })
+                    }).then(response => {
+                        if (response.ok) {
+                            window.location.reload();
+                        } else {
+                            alert('Failed to update customer status');
+                        }
+                    });
+                }
+            }
+
+            function searchCustomers() {
+                const searchTerm = document.getElementById('searchCustomer').value;
+                window.location.href = `/admin/customers?search=${encodeURIComponent(searchTerm)}`;
+            }
+
+            // Handle enter key in search box
+            document.getElementById('searchCustomer').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchCustomers();
+                }
+            });
+        </script>
+    </th:block>
+</body>
+</html> 

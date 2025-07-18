@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="layout/main :: head">
+    <title>Products - eShop</title>
+</head>
+<body>
+    <nav th:replace="layout/main :: nav"></nav>
+
+    <div class="container my-4">
+        <!-- Search and Filter Section -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <form th:action="@{/products}" method="get" class="d-flex gap-2">
+                    <input type="text" class="form-control" name="search" th:value="${param.search}"
+                           placeholder="Search products...">
+                    <select class="form-select w-auto" name="category">
+                        <option value="">All Categories</option>
+                        <option th:each="category : ${categories}"
+                                th:value="${category.id}"
+                                th:text="${category.name}"
+                                th:selected="${param.category == category.id}">
+                        </option>
+                    </select>
+                    <button type="submit" class="btn btn-primary">Search</button>
+                </form>
+            </div>
+            <div class="col-md-4">
+                <div class="d-flex justify-content-end gap-2">
+                    <select class="form-select w-auto" name="sort" id="sort">
+                        <option value="name_asc">Name (A-Z)</option>
+                        <option value="name_desc">Name (Z-A)</option>
+                        <option value="price_asc">Price (Low to High)</option>
+                        <option value="price_desc">Price (High to Low)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Products Grid -->
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
+            <div class="col" th:each="product : ${products}">
+                <div class="card h-100">
+                    <img th:src="${product.imageUrl}" class="card-img-top" alt="Product Image"
+                         onerror="this.src='/images/placeholder.jpg'">
+                    <div class="card-body">
+                        <h5 class="card-title" th:text="${product.name}">Product Name</h5>
+                        <p class="card-text text-truncate" th:text="${product.description}">Description</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="h5 mb-0" th:text="${'$' + #numbers.formatDecimal(product.price, 0, 'COMMA', 2, 'POINT')}">$0.00</span>
+                            <span class="badge bg-success" th:if="${product.stockQuantity > 0}">In Stock</span>
+                            <span class="badge bg-danger" th:unless="${product.stockQuantity > 0}">Out of Stock</span>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent border-top-0">
+                        <div class="d-grid">
+                            <a th:href="@{'/products/' + ${product.id}}" class="btn btn-outline-primary">View Details</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <nav th:if="${totalPages > 1}" class="mt-4">
+            <ul class="pagination justify-content-center">
+                <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
+                    <a class="page-link" th:href="@{/products(page=${currentPage - 1}, size=${size}, search=${param.search}, category=${param.category})}">&laquo;</a>
+                </li>
+                <li class="page-item" th:each="i : ${#numbers.sequence(0, totalPages - 1)}"
+                    th:classappend="${currentPage == i} ? 'active'">
+                    <a class="page-link" th:href="@{/products(page=${i}, size=${size}, search=${param.search}, category=${param.category})}" th:text="${i + 1}"></a>
+                </li>
+                <li class="page-item" th:classappend="${currentPage == totalPages - 1} ? 'disabled'">
+                    <a class="page-link" th:href="@{/products(page=${currentPage + 1}, size=${size}, search=${param.search}, category=${param.category})}">&raquo;</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+
+    <footer th:replace="layout/main :: footer"></footer>
+    <div th:replace="layout/main :: scripts"></div>
+
+    <!-- Sort functionality -->
+    <script>
+        document.getElementById('sort').addEventListener('change', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            urlParams.set('sort', this.value);
+            window.location.search = urlParams.toString();
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{admin/layout}">
+<head>
+    <title>Sales Report - eShop Admin</title>
+    <style>
+        .metric-card {
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .chart-container {
+            height: 300px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div layout:fragment="content">
+        <!-- Date Range Filter -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3">Sales Report</h1>
+            <div class="d-flex gap-2">
+                <input type="date" class="form-control" id="startDate">
+                <input type="date" class="form-control" id="endDate">
+                <button class="btn btn-primary" onclick="updateReport()">Apply Filter</button>
+                <button class="btn btn-secondary" onclick="exportReport()">Export Report</button>
+            </div>
+        </div>
+
+        <!-- Key Metrics -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="metric-card bg-primary text-white">
+                    <h6>Total Revenue</h6>
+                    <h2 th:text="${'$' + #numbers.formatDecimal(totalRevenue, 0, 'COMMA', 2, 'POINT')}">$0.00</h2>
+                    <p class="mb-0">
+                        <span th:text="${revenueGrowth + '%'}" 
+                              th:class="${revenueGrowth >= 0 ? 'text-success' : 'text-danger'}">
+                            0%
+                        </span>
+                        vs previous period
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card bg-success text-white">
+                    <h6>Total Orders</h6>
+                    <h2 th:text="${totalOrders}">0</h2>
+                    <p class="mb-0">
+                        <span th:text="${orderGrowth + '%'}"
+                              th:class="${orderGrowth >= 0 ? 'text-success' : 'text-danger'}">
+                            0%
+                        </span>
+                        vs previous period
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card bg-info text-white">
+                    <h6>Average Order Value</h6>
+                    <h2 th:text="${'$' + #numbers.formatDecimal(avgOrderValue, 0, 'COMMA', 2, 'POINT')}">$0.00</h2>
+                    <p class="mb-0">
+                        <span th:text="${avgOrderGrowth + '%'}"
+                              th:class="${avgOrderGrowth >= 0 ? 'text-success' : 'text-danger'}">
+                            0%
+                        </span>
+                        vs previous period
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card bg-warning text-white">
+                    <h6>New Customers</h6>
+                    <h2 th:text="${newCustomers}">0</h2>
+                    <p class="mb-0">
+                        <span th:text="${customerGrowth + '%'}"
+                              th:class="${customerGrowth >= 0 ? 'text-success' : 'text-danger'}">
+                            0%
+                        </span>
+                        vs previous period
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Revenue Trend</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="revenueChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Sales by Category</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="categoryChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Customer Insights -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Customer Insights</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="chart-container">
+                            <canvas id="customerSegmentChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Top Customer Segments</h6>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Segment</th>
+                                        <th>Customers</th>
+                                        <th>Revenue</th>
+                                        <th>Avg. Order Value</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="segment : ${customerSegments}">
+                                        <td th:text="${segment.name}">Loyal Customers</td>
+                                        <td th:text="${segment.customerCount}">100</td>
+                                        <td th:text="${'$' + #numbers.formatDecimal(segment.revenue, 0, 'COMMA', 2, 'POINT')}">$1,000.00</td>
+                                        <td th:text="${'$' + #numbers.formatDecimal(segment.avgOrderValue, 0, 'COMMA', 2, 'POINT')}">$100.00</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Product Performance -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Product Performance</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Category</th>
+                                <th>Units Sold</th>
+                                <th>Revenue</th>
+                                <th>Profit Margin</th>
+                                <th>Stock Level</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="product : ${productPerformance}">
+                                <td th:text="${product.name}">Product Name</td>
+                                <td th:text="${product.category}">Category</td>
+                                <td th:text="${product.unitsSold}">100</td>
+                                <td th:text="${'$' + #numbers.formatDecimal(product.revenue, 0, 'COMMA', 2, 'POINT')}">$1,000.00</td>
+                                <td>
+                                    <span th:text="${product.profitMargin + '%'}"
+                                          th:class="${product.profitMargin >= 20 ? 'text-success' : 'text-warning'}">
+                                        30%
+                                    </span>
+                                </td>
+                                <td>
+                                    <span th:text="${product.stockLevel}"
+                                          th:class="${product.stockLevel < 10 ? 'text-danger' : 'text-success'}">
+                                        50
+                                    </span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary"
+                                            th:onclick="'location.href=\'/admin/products?edit=' + ${product.id} + '\''">
+                                        Adjust
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Customer Recommendations -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Recommendations</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Inventory Optimization</h6>
+                        <ul class="list-unstyled">
+                            <li th:each="recommendation : ${inventoryRecommendations}" class="mb-2">
+                                <i class="bi bi-arrow-right"></i>
+                                <span th:text="${recommendation}">Recommendation text</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Price Optimization</h6>
+                        <ul class="list-unstyled">
+                            <li th:each="recommendation : ${priceRecommendations}" class="mb-2">
+                                <i class="bi bi-arrow-right"></i>
+                                <span th:text="${recommendation}">Recommendation text</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page specific scripts -->
+    <th:block layout:fragment="scripts">
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script th:inline="javascript">
+            // Revenue Chart
+            const revenueData = /*[[${revenueData}]]*/ [];
+            const revenueChart = new Chart(document.getElementById('revenueChart'), {
+                type: 'line',
+                data: {
+                    labels: revenueData.map(d => d.date),
+                    datasets: [{
+                        label: 'Revenue',
+                        data: revenueData.map(d => d.amount),
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+
+            // Category Chart
+            const categoryData = /*[[${categoryData}]]*/ [];
+            const categoryChart = new Chart(document.getElementById('categoryChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: categoryData.map(d => d.category),
+                    datasets: [{
+                        data: categoryData.map(d => d.sales),
+                        backgroundColor: [
+                            'rgb(255, 99, 132)',
+                            'rgb(54, 162, 235)',
+                            'rgb(255, 205, 86)',
+                            'rgb(75, 192, 192)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+
+            // Customer Segment Chart
+            const segmentData = /*[[${customerSegments}]]*/ [];
+            const segmentChart = new Chart(document.getElementById('customerSegmentChart'), {
+                type: 'pie',
+                data: {
+                    labels: segmentData.map(d => d.name),
+                    datasets: [{
+                        data: segmentData.map(d => d.customerCount),
+                        backgroundColor: [
+                            'rgb(255, 99, 132)',
+                            'rgb(54, 162, 235)',
+                            'rgb(255, 205, 86)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+
+            function updateReport() {
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+                window.location.href = `/admin/sales-report?start=${startDate}&end=${endDate}`;
+            }
+
+            function exportReport() {
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+                window.location.href = `/admin/sales-report/export?start=${startDate}&end=${endDate}`;
+            }
+
+            // Set default date range (last 30 days)
+            const today = new Date();
+            const thirtyDaysAgo = new Date(today);
+            thirtyDaysAgo.setDate(today.getDate() - 30);
+            
+            document.getElementById('endDate').value = today.toISOString().split('T')[0];
+            document.getElementById('startDate').value = thirtyDaysAgo.toISOString().split('T')[0];
+        </script>
+    </th:block>
+</body>
+</html> 

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{admin/layout}">
+<head>
+    <title>Account Settings - eShop Admin</title>
+</head>
+<body>
+    <div layout:fragment="content">
+        <div class="row">
+            <div class="col-md-6">
+                <!-- Profile Information -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Profile Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <form th:action="@{/admin/account/profile}" method="post">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Name</label>
+                                <input type="text" class="form-control" id="name" name="name"
+                                       th:value="${user.name}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" name="email"
+                                       th:value="${user.email}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="phoneNumber" class="form-label">Phone Number</label>
+                                <input type="tel" class="form-control" id="phoneNumber" name="phoneNumber"
+                                       th:value="${user.phoneNumber}">
+                            </div>
+                            <button type="submit" class="btn btn-primary">Update Profile</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Change Password -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Change Password</h5>
+                    </div>
+                    <div class="card-body">
+                        <form th:action="@{/admin/account/password}" method="post">
+                            <div class="mb-3">
+                                <label for="currentPassword" class="form-label">Current Password</label>
+                                <input type="password" class="form-control" id="currentPassword" 
+                                       name="currentPassword" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="newPassword" class="form-label">New Password</label>
+                                <input type="password" class="form-control" id="newPassword" 
+                                       name="newPassword" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="confirmPassword" class="form-label">Confirm New Password</label>
+                                <input type="password" class="form-control" id="confirmPassword" 
+                                       name="confirmPassword" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Change Password</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <!-- Security Settings -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Security Settings</h5>
+                    </div>
+                    <div class="card-body">
+                        <form th:action="@{/admin/account/security}" method="post">
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="twoFactorAuth"
+                                           name="twoFactorAuth" th:checked="${user.twoFactorEnabled}">
+                                    <label class="form-check-label" for="twoFactorAuth">
+                                        Enable Two-Factor Authentication
+                                    </label>
+                                </div>
+                                <small class="text-muted d-block mt-1">
+                                    Adds an extra layer of security to your account
+                                </small>
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="emailNotifications"
+                                           name="emailNotifications" th:checked="${user.emailNotificationsEnabled}">
+                                    <label class="form-check-label" for="emailNotifications">
+                                        Email Notifications
+                                    </label>
+                                </div>
+                                <small class="text-muted d-block mt-1">
+                                    Receive email notifications for important account activities
+                                </small>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save Security Settings</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Activity Log -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Recent Activity</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Activity</th>
+                                        <th>Date</th>
+                                        <th>IP Address</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="activity : ${activityLog}">
+                                        <td th:text="${activity.description}">Login</td>
+                                        <td th:text="${#temporals.format(activity.timestamp, 'dd-MM-yyyy HH:mm')}">
+                                            01-01-2024 10:00
+                                        </td>
+                                        <td th:text="${activity.ipAddress}">192.168.1.1</td>
+                                    </tr>
+                                    <tr th:if="${activityLog.empty}">
+                                        <td colspan="3" class="text-center">No recent activity</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page specific scripts -->
+    <th:block layout:fragment="scripts">
+        <script>
+            // Password validation
+            document.querySelector('form[action*="/password"]').addEventListener('submit', function(e) {
+                const newPassword = document.getElementById('newPassword').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+                
+                if (newPassword !== confirmPassword) {
+                    e.preventDefault();
+                    alert('New password and confirmation do not match');
+                    return false;
+                }
+                
+                if (newPassword.length < 8) {
+                    e.preventDefault();
+                    alert('Password must be at least 8 characters long');
+                    return false;
+                }
+            });
+
+            // Two-factor authentication toggle
+            document.getElementById('twoFactorAuth').addEventListener('change', function(e) {
+                if (this.checked) {
+                    if (!confirm('Enable two-factor authentication? You will need to set it up using an authenticator app.')) {
+                        e.preventDefault();
+                        this.checked = false;
+                    }
+                }
+            });
+        </script>
+    </th:block>
+</body>
+</html> 
